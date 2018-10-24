@@ -23,6 +23,8 @@ class LogStash::Codecs::GZIP < LogStash::Codecs::Base
   # For nxlog users, you may to set this to "CP1252".
   config :charset, :validate => ::Encoding.name_list, :default => "UTF-8"
 
+  MESSAGE_FIELD = "message".freeze
+
   public
   def register
     @converter = LogStash::Util::Charset.new(@charset)
@@ -33,10 +35,10 @@ class LogStash::Codecs::GZIP < LogStash::Codecs::Base
   def decode(data)
     begin
       decoded = Zlib::GzipReader.new(StringIO.new(data)).read
-      yield LogStash::Event.new("message" => @converter.convert(decoded))
+      yield LogStash::Event.new(MESSAGE_FIELD => @converter.convert(decoded))
     rescue Zlib::Error, Zlib::GzipFile::Error=> e
-	  @logger.info? && @logger.info("GZIP parse failure. Falling back to plain-text", :error => e, :data => data)
-      yield LogStash::Event.new("message" => data, "tags" => ["_gzipparsefailure"])
+      @logger.info? && @logger.info("Gzip codec: GZIP parse failure. Falling back to plain-text", :error => e, :data => data)
+      yield LogStash::Event.new(MESSAGE_FIELD => @converter.convert(data), "tags" => ["_gzipparsefailure"])
     end
   end # def decode
 end # class LogStash::Codecs::JSON
